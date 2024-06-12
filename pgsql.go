@@ -86,7 +86,7 @@ func (rm RowMap) UpdateData() []*Assignment {
 
 func (rm RowMap) sortedKeys() []string {
 	keys := make([]string, 0, len(rm))
-	for k, _ := range rm {
+	for k := range rm {
 		keys = append(keys, k)
 	}
 

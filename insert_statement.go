@@ -5,10 +5,11 @@ import (
 )
 
 type InsertStatement struct {
-	tableName     string
-	columns       []string
-	values        SQLWriter
-	returningList returningList
+	tableName       string
+	columns         []string
+	values          SQLWriter
+	conflictUpdates []*Assignment
+	returningList   returningList
 }
 
 func Insert(tableName string) *InsertStatement {
@@ -21,6 +22,11 @@ func (is *InsertStatement) InsertStatement() (*InsertStatement, error) {
 
 type Insertable interface {
 	InsertData() ([]string, *ValuesStatement)
+}
+
+func (is *InsertStatement) OnConflictUpdate(data Updateable) *InsertStatement {
+	is.conflictUpdates = data.UpdateData()
+	return is
 }
 
 func (is *InsertStatement) Data(data Insertable) *InsertStatement {
@@ -64,6 +70,18 @@ func (is *InsertStatement) WriteSQL(sb *strings.Builder, args *Args) {
 	if is.values != nil {
 		sb.WriteByte(' ')
 		is.values.WriteSQL(sb, args)
+	}
+
+	if is.conflictUpdates != nil {
+		sb.WriteString(" on conflict do update set ")
+		for i, a := range is.conflictUpdates {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			a.Left.WriteSQL(sb, args)
+			sb.WriteString(" = EXCLUDED.")
+			a.Right.WriteSQL(sb, args)
+		}
 	}
 
 	is.returningList.WriteSQL(sb, args)

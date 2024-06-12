@@ -40,6 +40,21 @@ func TestInsertStatementData(t *testing.T) {
 	assert.Equal(t, []interface{}{30, "Alice"}, args)
 }
 
+func TestInsertStatementUpsert(t *testing.T) {
+	a := pgsql.Insert("people")
+	sql, args := pgsql.Build(a)
+	assert.Equal(t, "insert into people ", sql)
+	assert.Empty(t, args)
+
+	data := pgsql.RowMap{"name": "Alice", "age": 30}
+	a.Data(data)
+	a.OnConflictUpdate(data)
+
+	sql, args = pgsql.Build(a)
+	assert.Equal(t, "insert into people (age, name) values ($1,$2) on conflict do update set age = EXCLUDED.$3, name = EXCLUDED.$4", sql)
+	assert.Equal(t, []interface{}{30, "Alice", 30, "Alice"}, args)
+}
+
 func TestInsertStatementReturning(t *testing.T) {
 	a := pgsql.Insert("people")
 	a.Data(pgsql.RowMap{"name": "Alice", "age": 30})
